@@ -1,0 +1,124 @@
+Private Sub cancelar_Click()
+Unload Me
+End Sub
+
+Private Sub ok_Click()
+
+    If logado.Value = True Or (usr <> "" And pss <> "") Then
+        Call download
+        Unload Me
+    Else
+        MsgBox "Favor verificar os campos."
+    End If
+End Sub
+Private Sub logado_Click()
+        If logado.Value = True Then
+            usr.Visible = False
+            pss.Visible = False
+        Else
+            usr.Visible = True
+            pss.Visible = True
+        End If
+
+End Sub
+
+Sub download()
+
+Dim prg, desk As String
+Dim x As Variant
+Dim sess As Variant
+Dim csel, i As Integer
+Dim pedido As String
+
+'Codigo padrao para entrar no SAP
+'On Error GoTo FIM
+    If logado.Value = False Then
+        prg = Shell("C:\Program Files (x86)\SAP\FrontEnd\SAPgui\sapshcut.exe -system=P56 -client=610" & " -user=" & usr & " -pw=" & pss)
+    End If
+    Application.Wait (Now + TimeValue("00:00:03"))
+    Application.DisplayAlerts = False
+    If Not IsObject(SAP) Then
+       Set SapGuiAuto = GetObject("SAPGUI")
+       Set SAP = SapGuiAuto.GetScriptingEngine
+    End If
+    If Not IsObject(Connection) Then
+       Set Connection = SAP.Children(0)
+    End If
+    If Not IsObject(sap_Session) Then
+       Set sap_Session = Connection.Children(0)
+    End If
+    If IsObject(WScript) Then
+       WScript.ConnectObject sap_Session, "on"
+       WScript.ConnectObject SAP, "on"
+    End If
+    desk = CreateObject("WScript.Shell").specialfolders("Desktop")
+    If sap_Session.findById("wnd[0]").IsVkeyAllowed(12) Then
+    sap_Session.findById("wnd[0]").sendVKey 12
+    End If
+    
+    'Variavel com valor igual a 3 para comecar na terceira linha (debaixo da "Pedidos que estão pendentes")
+    Linhain = 3
+    
+    'Estrutura de repeticao para percorrer as linhas do excel
+    While Cells(Linhain, 20) <> ""
+    
+    'Entra na transacao ME21N para verificar se o pedido está aprovado
+    pedido = Planilha3.Cells(Linhain, 20).Value
+    sap_Session.findById("wnd[0]").maximize
+    sap_Session.findById("wnd[0]/tbar[0]/okcd").Text = "/nme21n"
+    sap_Session.findById("wnd[0]").sendVKey 0
+    sap_Session.findById("wnd[0]/tbar[1]/btn[17]").press
+    sap_Session.findById("wnd[1]/usr/subSUB0:SAPLMEGUI:0003/ctxtMEPO_SELECT-EBELN").Text = pedido
+    sap_Session.findById("wnd[1]/usr/subSUB0:SAPLMEGUI:0003/ctxtMEPO_SELECT-EBELN").caretPosition = 10
+    sap_Session.findById("wnd[1]").sendVKey 0
+    sap_Session.findById("wnd[0]/usr/subSUB0:SAPLMEGUI:0010/subSUB1:SAPLMEVIEWS:1100/subSUB2:SAPLMEVIEWS:1200/subSUB1:SAPLMEGUI:1102/tabsHEADER_DETAIL/tabpTABHDT12").Select
+    sap_Session.findById("wnd[0]/usr/subSUB0:SAPLMEGUI:0010/subSUB1:SAPLMEVIEWS:1100/subSUB2:SAPLMEVIEWS:1200/subSUB1:SAPLMEGUI:1102/tabsHEADER_DETAIL/tabpTABHDT12/ssubTABSTRIPCONTROL2SUB:SAPLMERELVI:1100/cntlRELEASE_INFO/shellcont/shell").currentCellColumn = "ICON"
+    sap_Session.findById("wnd[0]/usr/subSUB0:SAPLMEGUI:0010/subSUB1:SAPLMEVIEWS:1100/subSUB2:SAPLMEVIEWS:1200/subSUB1:SAPLMEGUI:1102/tabsHEADER_DETAIL/tabpTABHDT12/ssubTABSTRIPCONTROL2SUB:SAPLMERELVI:1100/cntlRELEASE_INFO/shellcont/shell").contextMenu
+    sap_Session.findById("wnd[0]/usr/subSUB0:SAPLMEGUI:0010/subSUB1:SAPLMEVIEWS:1100/subSUB2:SAPLMEVIEWS:1200/subSUB1:SAPLMEGUI:1102/tabsHEADER_DETAIL/tabpTABHDT12/ssubTABSTRIPCONTROL2SUB:SAPLMERELVI:1100/cntlRELEASE_INFO/shellcont/shell").selectContextMenuItem "&FIND"
+    
+    'Verifica se o pedido está aprovado pelo responsável
+    If sap_Session.findById("wnd[1]/usr/txtGS_SEARCH-VALUE").Text = "@01\QLiberação efetuada@" Then
+        sap_Session.findById("wnd[1]/tbar[0]/btn[12]").press
+        sap_Session.findById("wnd[0]/usr/subSUB0:SAPLMEGUI:0010/subSUB1:SAPLMEVIEWS:1100/subSUB2:SAPLMEVIEWS:1200/subSUB1:SAPLMEGUI:1102/tabsHEADER_DETAIL/tabpTABHDT12").Select
+        sap_Session.findById("wnd[0]/usr/subSUB0:SAPLMEGUI:0010/subSUB1:SAPLMEVIEWS:1100/subSUB2:SAPLMEVIEWS:1200/subSUB1:SAPLMEGUI:1102/tabsHEADER_DETAIL/tabpTABHDT12/ssubTABSTRIPCONTROL2SUB:SAPLMERELVI:1100/cntlRELEASE_INFO/shellcont/shell").currentCellRow = 1
+        sap_Session.findById("wnd[0]/usr/subSUB0:SAPLMEGUI:0010/subSUB1:SAPLMEVIEWS:1100/subSUB2:SAPLMEVIEWS:1200/subSUB1:SAPLMEGUI:1102/tabsHEADER_DETAIL/tabpTABHDT12/ssubTABSTRIPCONTROL2SUB:SAPLMERELVI:1100/cntlRELEASE_INFO/shellcont/shell").contextMenu
+        sap_Session.findById("wnd[0]/usr/subSUB0:SAPLMEGUI:0010/subSUB1:SAPLMEVIEWS:1100/subSUB2:SAPLMEVIEWS:1200/subSUB1:SAPLMEGUI:1102/tabsHEADER_DETAIL/tabpTABHDT12/ssubTABSTRIPCONTROL2SUB:SAPLMERELVI:1100/cntlRELEASE_INFO/shellcont/shell").selectContextMenuItem "&FIND"
+         
+         'Verifica se o pedido está aprovado pelo gerente
+         If sap_Session.findById("wnd[1]/usr/txtGS_SEARCH-VALUE").Text = "@01\QLiberação efetuada@" Then
+            sap_Session.findById("wnd[1]/tbar[0]/btn[12]").press
+            
+            'ME9F para baixar o pedido em arquivo PDF
+            sap_Session.findById("wnd[0]").maximize
+            sap_Session.findById("wnd[0]/tbar[0]/okcd").Text = "/NME9F "
+            sap_Session.findById("wnd[0]").sendVKey 0
+            sap_Session.findById("wnd[0]/usr/ctxtS_EBELN-LOW").Text = pedido
+            sap_Session.findById("wnd[0]/usr/ctxtS_EBELN-LOW").caretPosition = 10
+            sap_Session.findById("wnd[0]/tbar[1]/btn[8]").press
+            sap_Session.findById("wnd[0]/usr/chk[1,5]").Selected = True
+            sap_Session.findById("wnd[0]/tbar[1]/btn[16]").press
+            sap_Session.findById("wnd[1]/usr/btnBUTTON_2").press
+            
+            'Escolha aonde vai ser baixado o arquivo
+            sap_Session.findById("wnd[1]/usr/ctxtDY_PATH").Text = "D:\Users\Desktop\"
+            sap_Session.findById("wnd[1]/usr/ctxtDY_FILENAME").Text = "\" + pedido + ".pdf"
+            sap_Session.findById("wnd[1]/usr/ctxtDY_FILENAME").caretPosition = 15
+            sap_Session.findById("wnd[1]/tbar[0]/btn[0]").press
+        
+        Else
+        'Mostra na linha da frente do pedido que falta a aprovacao do gerente para baixar
+        Cells(Linhain, 21).Select
+        ActiveCell.FormulaR1C1 = "Falta aprovação do gerente!"
+        End If
+    Else
+    
+    'Mostra na linha da frente do pedido que falta aprovacao do gerente para baixar
+    Cells(Linhain, 21).Select
+    ActiveCell.FormulaR1C1 = "Falta aprovação do responsável!"
+    End If
+    
+    Linhain = Linhain + 1
+    Wend
+    
+
+End Sub
